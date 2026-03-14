@@ -3,40 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>扣子智能体对话</title>
+    <title>多人在线聊天室</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: "Microsoft YaHei", sans-serif;
+            font-family: Arial, sans-serif;
         }
+
         body {
             background: #f5f7fa;
             padding: 20px;
         }
-        #coze-widget {
+
+        .room {
             max-width: 800px;
-            height: 800px;
             margin: 0 auto;
+            background: white;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
+
+        .top {
+            background: #2d8cf0;
+            color: white;
+            padding: 16px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .msg-area {
+            height: 550px;
+            padding: 20px;
+            overflow-y: auto;
+            background: #fafbfc;
+        }
+
+        .msg {
+            margin-bottom: 12px;
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            line-height: 1.4;
+        }
+
+        .my {
+            background: #2d8cf0;
+            color: white;
+            margin-left: auto;
+        }
+
+        .other {
+            background: #e9e9eb;
+            color: #333;
+            margin-right: auto;
+        }
+
+        .input-box {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        #name {
+            width: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            margin-right: 8px;
+            outline: none;
+        }
+
+        #text {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 24px;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #2d8cf0;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            margin-left: 8px;
+            cursor: pointer;
+        }
+
     </style>
 </head>
-<body>
-    <div id="coze-widget"></div>
 
-    <!-- 扣子官方 Web SDK -->
-    <script src="https://assets.coze.cn/sdk/coze-web-sdk.js"></script>
-    <script>
-        CozeSDK.init({
-            container: "#coze-widget",
-            botId: "7600986535647412266",
-            spaceId: "7600320606860574729",
-            theme: "light"
-        });
-    </script>
+<body>
+
+<div class="room">
+    <div class="top">多人在线聊天室</div>
+    <div class="msg-area" id="msgArea"></div>
+    <div class="input-box">
+        <input type="text" id="name" placeholder="昵称" value="用户">
+        <input type="text" id="text" placeholder="输入消息...">
+        <button onclick="send()">发送</button>
+    </div>
+</div>
+
+<script>
+    // 用在线免费实时通道，实现多人聊天
+    const channel = new BroadcastChannel("public_chat");
+    const msgArea = document.getElementById("msgArea");
+    const nameInput = document.getElementById("name");
+    const textInput = document.getElementById("text");
+
+    // 发送消息
+    function send() {
+        const name = nameInput.value.trim() || "匿名";
+        const text = textInput.value.trim();
+        if (!text) return;
+
+        const data = { name, text, mine: true };
+        addMsg(data);
+        channel.postMessage(data);
+        textInput.value = "";
+    }
+
+    // 接收消息
+    channel.onmessage = (e) => {
+        const data = e.data;
+        data.mine = false;
+        addMsg(data);
+    };
+
+    // 显示消息
+    function addMsg({ name, text, mine }) {
+        const div = document.createElement("div");
+        div.className = "msg " + (mine ? "my" : "other");
+        div.innerText = (mine ? "" : name + "：") + text;
+        msgArea.appendChild(div);
+        msgArea.scrollTop = msgArea.scrollHeight;
+    }
+
+    // 回车发送
+    textInput.addEventListener("keypress", e => {
+        if (e.key === "Enter") send();
+    });
+</script>
+
 </body>
 </html>
