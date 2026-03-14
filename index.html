@@ -86,6 +86,7 @@
 
         goEasy = new GoEasy({
             appkey: APP_KEY,
+            storage: false, // 👈 关键！禁用本地存储访问，避免被浏览器拦截
             onConnect: () => {
                 console.log("✅ 连接成功");
                 statusEl.innerText = "✅ 已连接 | 加入频道: " + CHANNEL_NAME;
