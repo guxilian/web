@@ -25,25 +25,33 @@
   <div class="input-box">
     <input type="text" id="name" placeholder="昵称" value="用户">
     <input type="text" id="text" placeholder="输入消息...">
-    <button onclick="send()">发送</button>
+    <button id="sendBtn">发送</button>
   </div>
 </div>
 
-<!-- 先加载 SDK -->
+<!-- 加载 GoEasy SDK -->
 <script src="https://cdn.goeasy.io/goeasy-2.6.0.min.js"></script>
 
 <script>
-  // 等页面和 SDK 都加载完成后再执行
-  window.onload = function() {
-    console.log("✅ 页面加载完成，开始初始化 GoEasy...");
+  // 等待 SDK 和 DOM 完全就绪
+  document.addEventListener('DOMContentLoaded', function() {
+    // 先检查 GoEasy 是否加载成功
+    if (typeof GoEasy === 'undefined') {
+      alert('GoEasy SDK 加载失败，请检查网络后刷新！');
+      return;
+    }
+
+    console.log("✅ 初始化 GoEasy...");
     const goEasy = GoEasy.getInstance({
       host: 'hangzhou.goeasy.io',
       appkey: 'BC-eb5fdf3b144f4d1ba06a850372ae40db',
     });
 
+    // 连接 GoEasy
     goEasy.connect({
       onSuccess: () => {
         console.log("✅ GoEasy 连接成功！");
+        // 订阅公共频道
         goEasy.subscribe({
           channel: 'public_chat',
           onMessage: (msg) => {
@@ -57,11 +65,13 @@
       onFailed: (err) => console.error("❌ GoEasy 连接失败：", err)
     });
 
-    // 现在 DOM 已加载，可以安全获取元素
+    // 获取 DOM 元素（现在一定存在）
     const msgs = document.getElementById('msgs');
     const nameInput = document.getElementById('name');
     const textInput = document.getElementById('text');
+    const sendBtn = document.getElementById('sendBtn');
 
+    // 添加消息到界面
     function addMsg(text, isMe) {
       const div = document.createElement('div');
       div.className = 'msg ' + (isMe ? 'me' : 'other');
@@ -70,7 +80,8 @@
       msgs.scrollTop = msgs.scrollHeight;
     }
 
-    window.send = function() {
+    // 发送消息逻辑
+    function send() {
       const name = nameInput.value || '匿名';
       const text = textInput.value.trim();
       if (!text) return;
@@ -86,12 +97,14 @@
       
       addMsg(content, true);
       textInput.value = '';
-    };
+    }
 
+    // 绑定事件（不再用 onclick 属性）
+    sendBtn.addEventListener('click', send);
     textInput.addEventListener('keypress', e => {
       if (e.key === 'Enter') send();
     });
-  };
+  });
 </script>
 </body>
 </html>
