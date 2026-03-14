@@ -2,249 +2,41 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <!-- 适配移动端 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>精美响应式官网</title>
+    <title>AI 智能对话</title>
     <style>
-        /* 全局样式重置 */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Microsoft YaHei", sans-serif;
-            scroll-behavior: smooth;
-        }
-
-        /* 导航栏 */
-        .navbar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            background: #2c3e50;
-            padding: 15px 5%;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 999;
-        }
-
-        .logo {
-            color: white;
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            margin-left: 30px;
-            font-size: 16px;
-            transition: 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: #3498db;
-        }
-
-        /* 轮播图 */
-        .banner {
-            margin-top: 60px;
-            height: 500px;
-            background: linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)), url('https://picsum.photos/1920/1080');
-            background-size: cover;
-            background-position: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            text-align: center;
-        }
-
-        .banner h1 {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
-        .banner p {
-            font-size: 20px;
-            margin-bottom: 30px;
-        }
-
-        .btn {
-            padding: 12px 30px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-
-        .btn:hover {
-            background: #2980b9;
-        }
-
-        /* 通用容器 */
-        .container {
-            width: 90%;
-            margin: 50px auto;
-            text-align: center;
-        }
-
-        .section-title {
-            font-size: 32px;
-            margin-bottom: 40px;
-            color: #2c3e50;
-        }
-
-        /* 服务卡片 */
-        .services {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 30px;
-        }
-
-        .card {
-            width: 300px;
-            padding: 30px;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-            transition: 0.3s;
-        }
-
-        .card:hover {
-            transform: translateY(-10px);
-        }
-
-        .card img {
-            width: 80px;
-            margin-bottom: 20px;
-        }
-
-        .card h3 {
-            font-size: 22px;
-            margin-bottom: 15px;
-            color: #2c3e50;
-        }
-
-        /* 关于我们 */
-        .about {
-            background: #f8f9fa;
-            padding: 60px 0;
-        }
-
-        .about-content {
-            max-width: 800px;
-            margin: 0 auto;
-            line-height: 1.8;
-            font-size: 18px;
-            color: #555;
-        }
-
-        /* 联系表单 */
-        .contact-form {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .contact-form input, .contact-form textarea {
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-
-        .contact-form textarea {
-            height: 150px;
-            resize: none;
-        }
-
-        /* 页脚 */
-        .footer {
-            background: #2c3e50;
-            color: white;
-            text-align: center;
-            padding: 30px 0;
-            margin-top: 50px;
-        }
+        *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+        body{background:#f5f7fa;padding:20px}
+        .chat{max-width:700px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 0 10px #00000010}
+        .title{background:#2c3e50;color:white;padding:16px;text-align:center;font-size:18px}
+        .msgs{height:500px;padding:20px;overflow-y:auto}
+        .msg{margin-bottom:14px;max-width:75%}
+        .user{margin-left:auto;background:#3498db;color:white;padding:10px 14px;border-radius:14px 14px 0 14px}
+        .ai{margin-right:auto;background:#ecf0f1;padding:10px 14px;border-radius:14px 14px 14px 0}
+        .inputbar{display:flex;padding:14px;border-top:1px solid #eee}
+        #input{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:30px;outline:none}
+        #send{margin-left:10px;padding:12px 22px;background:#3498db;color:white;border:none;border-radius:30px}
     </style>
 </head>
 <body>
 
-    <!-- 导航栏 -->
-    <div class="navbar">
-        <div class="logo">我的网站</div>
-        <div class="nav-links">
-            <a href="#home">首页</a>
-            <a href="#service">服务</a>
-            <a href="#about">关于</a>
-            <a href="#contact">联系我们</a>
-        </div>
+<div class="chat">
+    <div class="title">扣子智能体 AI 对话</div>
+    <div class="msgs" id="msgs"></div>
+    <div class="inputbar">
+        <input id="input" placeholder="输入消息..." autocomplete="off">
+        <button id="send">发送</button>
     </div>
+</div>
 
-    <!-- 首页轮播 -->
-    <div class="banner" id="home">
-        <h1>欢迎来到我们的网站</h1>
-        <p>专注于提供优质的产品与服务</p>
-        <button class="btn">了解更多</button>
-    </div>
-
-    <!-- 服务板块 -->
-    <div class="container" id="service">
-        <h2 class="section-title">我们的服务</h2>
-        <div class="services">
-            <div class="card">
-                <img src="https://picsum.photos/100/100" alt="服务图标">
-                <h3>网页设计</h3>
-                <p>提供专业的UI/UX设计，打造美观易用的页面</p>
-            </div>
-            <div class="card">
-                <img src="https://picsum.photos/100/100" alt="服务图标">
-                <h3>前端开发</h3>
-                <p>响应式网页开发，兼容所有设备</p>
-            </div>
-            <div class="card">
-                <img src="https://picsum.photos/100/100" alt="服务图标">
-                <h3>技术支持</h3>
-                <p>7×24小时在线技术支持服务</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- 关于我们 -->
-    <div class="about" id="about">
-        <div class="container">
-            <h2 class="section-title">关于我们</h2>
-            <div class="about-content">
-                我们是一支充满活力的专业团队，拥有多年的网页设计与前端开发经验。
-                始终坚持以用户为中心，用心打造每一个优质产品，为客户创造价值。
-                未来我们将继续努力，不断创新，为您带来更好的体验。
-            </div>
-        </div>
-    </div>
-
-    <!-- 联系我们 -->
-    <div class="container" id="contact">
-        <h2 class="section-title">联系我们</h2>
-        <form class="contact-form">
-            <input type="text" placeholder="您的姓名" required>
-            <input type="email" placeholder="您的邮箱" required>
-            <textarea placeholder="留言内容" required></textarea>
-            <button type="submit" class="btn">提交留言</button>
-        </form>
-    </div>
-
-    <!-- 页脚 -->
-    <div class="footer">
-        <p>© 2026 我的网站 版权所有</p>
-    </div>
+<script src="https://assets.coze.cn/boot.js"></script>
+<div id="coze-chat"></div>
+<script>
+CozeChat.init({
+    botId: "7600986535647412266",
+    spaceId: "7600320606860574729"
+});
+</script>
 
 </body>
 </html>
