@@ -2,95 +2,206 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>多人在线聊天室（纯前端版）</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简易多人聊天室 - GoEasy Demo</title>
     <style>
-        *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
-        body{background:#f2f5f9;padding:20px}
-        .chat{max-width:700px;margin:0 auto;background:#fff;border-radius:15px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.1)}
-        .top{background:#007bff;color:white;padding:16px;text-align:center;font-size:18px}
-        .msgs{height:500px;padding:20px;overflow-y:auto;background:#fafbfc}
-        .msg{margin-bottom:10px;max-width:75%;padding:10px 14px;border-radius:12px}
-        .me{background:#007bff;color:white;margin-left:auto}
-        .other{background:#e9e9eb;color:#333;margin-right:auto}
-        .input-box{display:flex;padding:15px;border-top:1px solid #eee}
-        #name{width:100px;padding:12px;border:1px solid #ddd;border-radius:24px;margin-right:8px;outline:none}
-        #text{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:24px;outline:none}
-        button{padding:12px 20px;background:#007bff;color:white;border:none;border-radius:24px;margin-left:8px;cursor:pointer}
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; height: 100vh; margin: 0; }
+        .chat-container { width: 100%; max-width: 450px; background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); display: flex; flex-direction: column; overflow: hidden; margin: 20px; height: calc(100vh - 40px); }
+        .header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .status-bar { font-size: 13px; text-align: center; padding: 8px; background: #f8f9fa; border-bottom: 1px solid #eee; transition: all 0.3s; }
+        .status-error { color: #dc3545; background: #fff5f5; }
+        .status-success { color: #28a745; background: #f0fff4; }
+        .messages { flex: 1; padding: 20px; overflow-y: auto; background-color: #e5ddd5; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .message-bubble { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; position: relative; word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1); animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message-mine { align-self: flex-end; background-color: #dcf8c6; border-bottom-right-radius: 2px; }
+        .message-others { align-self: flex-start; background-color: white; border-bottom-left-radius: 2px; }
+        .sender-name { font-size: 11px; color: #666; margin-bottom: 4px; display: block; font-weight: 600; }
+        .input-area { padding: 15px; background: #f0f0f0; display: flex; gap: 10px; border-top: 1px solid #ddd; }
+        input { flex: 1; padding: 12px 15px; border: 1px solid #ccc; border-radius: 25px; outline: none; transition: border 0.2s; }
+        input:focus { border-color: #007bff; }
+        button { padding: 12px 25px; background-color: #007bff; color: white; border: none; border-radius: 25px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        .messages::-webkit-scrollbar { width: 6px; }
+        .messages::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
     </style>
+    
+    <!-- ✅ 直接引入 CDN (GitHub Pages 环境下通常无障碍) -->
+    <script src="https://cdn.goeasy.io/goeasy-im.min.js"></script>
 </head>
 <body>
-<div class="chat">
-    <div class="top">🌍 公共多人聊天室（跨标签页可见）</div>
-    <div class="msgs" id="msgs"></div>
-    <div class="input-box">
-        <input type="text" id="name" placeholder="昵称" value="用户">
-        <input type="text" id="text" placeholder="输入消息...">
-        <button id="sendBtn">发送</button>
+
+<div class="chat-container">
+    <div class="header">🚀 简易多人聊天室</div>
+    <div class="status-bar" id="statusText">正在加载 SDK...</div>
+    <div class="messages" id="messageList">
+        <div style="text-align:center; color:#999; font-size:12px; margin-top:20px;">
+            欢迎加入聊天室！<br>消息实时同步，试试发送一条吧~
+        </div>
+    </div>
+    <div class="input-area">
+        <input type="text" id="msgInput" placeholder="输入消息..." onkeypress="handleKeyPress(event)" autocomplete="off">
+        <button onclick="sendMessage()" id="sendBtn" disabled>等待连接...</button>
     </div>
 </div>
 
 <script>
-    const msgs = document.getElementById('msgs');
-    const nameInput = document.getElementById('name');
-    const textInput = document.getElementById('text');
+    // ================= 配置区域 =================
+    const APP_KEY = "BC-eb5fdf3b144f4d1ba06a850372ae40db"; 
+    const CHANNEL_NAME = "my_public_room_01";
+    // ===========================================
+
+    let goEasy;
+    let myUserId;
+    let myUserName;
+    const statusEl = document.getElementById('statusText');
     const sendBtn = document.getElementById('sendBtn');
-    const STORAGE_KEY = 'chat_messages';
 
-    // 初始化：从 localStorage 加载历史消息
-    function loadMessages() {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            const messages = JSON.parse(saved);
-            messages.forEach(msg => addMsg(msg.content, msg.isMe));
-        }
+    function initUser() {
+        const randomId = Math.random().toString(36).substr(2, 9);
+        const randomNum = Math.floor(Math.random() * 9000) + 1000;
+        myUserId = "user_" + randomId;
+        myUserName = "网友_" + randomNum;
+        console.log("👤 用户初始化:", myUserName, "| ID:", myUserId);
     }
 
-    // 添加消息到界面
-    function addMsg(text, isMe) {
+    function checkAndConnect() {
+        // 检查 SDK 是否加载成功
+        if (typeof GoEasy === 'undefined') {
+            console.error("❌ 严重错误：GoEasy SDK 未从 CDN 加载成功！");
+            statusEl.innerText = "❌ 网络错误：无法加载 GoEasy SDK (请检查网络或防火墙)";
+            statusEl.className = "status-bar status-error";
+            return false;
+        }
+        return true;
+    }
+
+    function connect() {
+        if (!checkAndConnect()) return;
+
+        statusEl.innerText = "🔄 正在连接服务器...";
+        statusEl.className = "status-bar";
+
+        goEasy = new GoEasy({
+            appkey: APP_KEY,
+            onConnect: () => {
+                console.log("✅ 连接成功");
+                statusEl.innerText = "✅ 已连接 | 加入频道: " + CHANNEL_NAME;
+                statusEl.className = "status-bar status-success";
+                sendBtn.disabled = false;
+                sendBtn.innerText = "发送";
+                subscribeChannel();
+            },
+            onDisconnect: () => {
+                console.warn("⚠️ 连接断开");
+                statusEl.innerText = "⚠️ 连接断开，尝试重连...";
+                statusEl.className = "status-bar status-error";
+                sendBtn.disabled = true;
+                sendBtn.innerText = "重连中...";
+            },
+            onError: (error) => {
+                console.error("❌ 发生错误:", error);
+                statusEl.innerText = "❌ 错误: " + error.content;
+                statusEl.className = "status-bar status-error";
+            }
+        });
+
+        goEasy.connect({
+            id: myUserId,
+            token: null
+        });
+    }
+
+    function subscribeChannel() {
+        goEasy.subscribe({
+            channel: CHANNEL_NAME,
+            onMessage: (message) => {
+                renderMessage(message);
+            }
+        });
+    }
+
+    function sendMessage() {
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+        
+        if (!text || !goEasy) return;
+
+        sendBtn.disabled = true;
+        sendBtn.innerText = "发送中...";
+
+        const payload = {
+            sender: myUserName,
+            text: text,
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        };
+
+        goEasy.publish({
+            channel: CHANNEL_NAME,
+            message: JSON.stringify(payload),
+            onSuccess: () => {
+                console.log("✅ 消息发送成功");
+                input.value = '';
+                sendBtn.disabled = false;
+                sendBtn.innerText = "发送";
+            },
+            onFailed: (error) => {
+                console.error("❌ 发送失败:", error);
+                alert("发送失败：" + error.content);
+                sendBtn.disabled = false;
+                sendBtn.innerText = "发送";
+            }
+        });
+    }
+
+    function renderMessage(message) {
+        const list = document.getElementById('messageList');
+        let data;
+        
+        try {
+            data = typeof message.content === 'string' ? JSON.parse(message.content) : message.content;
+        } catch (e) {
+            data = { sender: "未知用户", text: message.content, time: new Date().toLocaleTimeString() };
+        }
+        
         const div = document.createElement('div');
-        div.className = 'msg ' + (isMe ? 'me' : 'other');
-        div.innerText = text;
-        msgs.appendChild(div);
-        msgs.scrollTop = msgs.scrollHeight;
+        const isMine = data.sender === myUserName;
+        
+        div.className = `message-bubble ${isMine ? 'message-mine' : 'message-others'}`;
+        div.innerHTML = `
+            <span class="sender-name">${data.sender}</span>
+            ${escapeHtml(data.text)}
+            <div style="text-align:right; font-size:10px; color:#999; margin-top:4px;">${data.time}</div>
+        `;
+        
+        list.appendChild(div);
+        list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
     }
 
-    // 保存消息到 localStorage
-    function saveMessage(content, isMe) {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        const messages = saved ? JSON.parse(saved) : [];
-        messages.push({ content, isMe });
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    function escapeHtml(text) {
+        if (!text) return text;
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
 
-    // 发送消息（会触发其他标签页的 storage 事件）
-    function send() {
-        const name = nameInput.value || '匿名';
-        const text = textInput.value.trim();
-        if (!text) return;
-        const content = `${name}：${text}`;
-        addMsg(content, true);
-        saveMessage(content, true);
-        textInput.value = '';
+    function handleKeyPress(e) {
+        if (e.key === 'Enter') sendMessage();
     }
 
-    // 监听其他标签页的消息（核心：跨页面通信）
-    window.addEventListener('storage', (e) => {
-        if (e.key === STORAGE_KEY) {
-            // 清空当前消息，重新加载所有消息
-            msgs.innerHTML = '';
-            loadMessages();
-        }
+    // 启动程序
+    initUser();
+    // 延迟执行以确保 CDN 脚本已下载并解析
+    window.addEventListener('load', () => {
+        setTimeout(connect, 500);
     });
 
-    // 绑定事件
-    sendBtn.addEventListener('click', send);
-    textInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') send();
-    });
-
-    // 页面加载时初始化
-    loadMessages();
-    addMsg("系统：已进入聊天室，打开多个标签页即可多人聊天", false);
 </script>
+
 </body>
 </html>
