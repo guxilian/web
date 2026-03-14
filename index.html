@@ -31,22 +31,27 @@
 
 <script src="https://cdn.goeasy.io/goeasy-2.6.0.min.js"></script>
 <script>
-  // 已替换成你的 APPKEY
+  console.log("开始初始化 GoEasy...");
   const goEasy = GoEasy.getInstance({
     host: 'hangzhou.goeasy.io',
     appkey: 'BC-eb5fdf3b144f4d1ba06a850372ae40db',
   });
 
   goEasy.connect({
-    onSuccess: () => console.log('连接成功'),
-    onFailed: (err) => console.log('连接失败', err)
-  });
-
-  goEasy.subscribe({
-    channel: 'public_chat',
-    onMessage: (msg) => {
-      addMsg(msg.content, false);
-    }
+    onSuccess: () => {
+      console.log("✅ GoEasy 连接成功！");
+      // 连接成功后再订阅
+      goEasy.subscribe({
+        channel: 'public_chat',
+        onMessage: (msg) => {
+          console.log("📩 收到消息：", msg.content);
+          addMsg(msg.content, false);
+        },
+        onSuccess: () => console.log("✅ 订阅 public_chat 成功"),
+        onFailed: (err) => console.error("❌ 订阅失败：", err)
+      });
+    },
+    onFailed: (err) => console.error("❌ GoEasy 连接失败：", err)
   });
 
   const msgs = document.getElementById('msgs');
@@ -66,10 +71,13 @@
     const text = textInput.value.trim();
     if (!text) return;
     const content = `${name}：${text}`;
+    console.log("📤 发送消息：", content);
     
     goEasy.publish({
       channel: 'public_chat',
-      message: content
+      message: content,
+      onSuccess: () => console.log("✅ 消息发送成功"),
+      onFailed: (err) => console.error("❌ 消息发送失败：", err)
     });
     
     addMsg(content, true);
