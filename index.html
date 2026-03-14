@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>多人在线聊天室</title>
+    <title>多人在线聊天室（纯前端版）</title>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
         body{background:#f2f5f9;padding:20px}
@@ -20,7 +20,7 @@
 </head>
 <body>
 <div class="chat">
-    <div class="top">🌍 公共多人聊天室（所有人可见）</div>
+    <div class="top">🌍 公共多人聊天室（跨标签页可见）</div>
     <div class="msgs" id="msgs"></div>
     <div class="input-box">
         <input type="text" id="name" placeholder="昵称" value="用户">
@@ -30,30 +30,20 @@
 </div>
 
 <script>
-    // 换用支持广播的公共 WebSocket 服务
-    const ws = new WebSocket('wss://socketsbay.com/wss/v2/1/demo/');
     const msgs = document.getElementById('msgs');
     const nameInput = document.getElementById('name');
     const textInput = document.getElementById('text');
     const sendBtn = document.getElementById('sendBtn');
+    const STORAGE_KEY = 'chat_messages';
 
-    // 连接成功
-    ws.onopen = function() {
-        addMsg("系统：连接成功，开始和大家聊天吧！", false);
-    };
-
-    // 收到广播消息（所有人都能看到）
-    ws.onmessage = function(event) {
-        // 过滤掉系统服务器标识消息
-        if (!event.data.startsWith("Request served by")) {
-            addMsg(event.data, false);
+    // 初始化：从 localStorage 加载历史消息
+    function loadMessages() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            const messages = JSON.parse(saved);
+            messages.forEach(msg => addMsg(msg.content, msg.isMe));
         }
-    };
-
-    // 连接断开
-    ws.onclose = function() {
-        addMsg("系统：连接已断开，请刷新页面重连", false);
-    };
+    }
 
     // 添加消息到界面
     function addMsg(text, isMe) {
@@ -64,22 +54,43 @@
         msgs.scrollTop = msgs.scrollHeight;
     }
 
-    // 发送消息（会被广播给所有在线用户）
+    // 保存消息到 localStorage
+    function saveMessage(content, isMe) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        const messages = saved ? JSON.parse(saved) : [];
+        messages.push({ content, isMe });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    }
+
+    // 发送消息（会触发其他标签页的 storage 事件）
     function send() {
         const name = nameInput.value || '匿名';
         const text = textInput.value.trim();
-        if (!text || ws.readyState !== WebSocket.OPEN) return;
+        if (!text) return;
         const content = `${name}：${text}`;
-        ws.send(content);
         addMsg(content, true);
+        saveMessage(content, true);
         textInput.value = '';
     }
 
-    // 绑定按钮和回车事件
+    // 监听其他标签页的消息（核心：跨页面通信）
+    window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEY) {
+            // 清空当前消息，重新加载所有消息
+            msgs.innerHTML = '';
+            loadMessages();
+        }
+    });
+
+    // 绑定事件
     sendBtn.addEventListener('click', send);
-    textInput.addEventListener('keypress', function(e) {
+    textInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') send();
     });
+
+    // 页面加载时初始化
+    loadMessages();
+    addMsg("系统：已进入聊天室，打开多个标签页即可多人聊天", false);
 </script>
 </body>
 </html>
