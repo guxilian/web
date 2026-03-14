@@ -1,154 +1,84 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>多人在线聊天室</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
-        body {
-            background: #f5f7fa;
-            padding: 20px;
-        }
-
-        .room {
-            max-width: 800px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-
-        .top {
-            background: #2d8cf0;
-            color: white;
-            padding: 16px;
-            text-align: center;
-            font-size: 18px;
-        }
-
-        .msg-area {
-            height: 550px;
-            padding: 20px;
-            overflow-y: auto;
-            background: #fafbfc;
-        }
-
-        .msg {
-            margin-bottom: 12px;
-            max-width: 70%;
-            padding: 10px 14px;
-            border-radius: 12px;
-            line-height: 1.4;
-        }
-
-        .my {
-            background: #2d8cf0;
-            color: white;
-            margin-left: auto;
-        }
-
-        .other {
-            background: #e9e9eb;
-            color: #333;
-            margin-right: auto;
-        }
-
-        .input-box {
-            display: flex;
-            padding: 15px;
-            border-top: 1px solid #eee;
-        }
-
-        #name {
-            width: 100px;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 24px;
-            margin-right: 8px;
-            outline: none;
-        }
-
-        #text {
-            flex: 1;
-            padding: 12px 16px;
-            border: 1px solid #ddd;
-            border-radius: 24px;
-            outline: none;
-        }
-
-        button {
-            padding: 12px 20px;
-            background: #2d8cf0;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            margin-left: 8px;
-            cursor: pointer;
-        }
-
-    </style>
+  <meta charset="UTF-8">
+  <title>国内多人聊天室</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+    body{background:#f2f5f9;padding:20px}
+    .chat{max-width:700px;margin:0 auto;background:#fff;border-radius:15px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.1)}
+    .top{background:#007bff;color:white;padding:16px;text-align:center;font-size:18px}
+    .msgs{height:500px;padding:20px;overflow-y:auto;background:#fafbfc}
+    .msg{margin-bottom:10px;max-width:75%;padding:10px 14px;border-radius:12px}
+    .me{background:#007bff;color:white;margin-left:auto}
+    .other{background:#e9e9eb;color:#333;margin-right:auto}
+    .input-box{display:flex;padding:15px;border-top:1px solid #eee}
+    #name{width:100px;padding:12px;border:1px solid #ddd;border-radius:24px;margin-right:8px;outline:none}
+    #text{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:24px;outline:none}
+    button{padding:12px 20px;background:#007bff;color:white;border:none;border-radius:24px;margin-left:8px;cursor:pointer}
+  </style>
 </head>
-
 <body>
-
-<div class="room">
-    <div class="top">多人在线聊天室</div>
-    <div class="msg-area" id="msgArea"></div>
-    <div class="input-box">
-        <input type="text" id="name" placeholder="昵称" value="用户">
-        <input type="text" id="text" placeholder="输入消息...">
-        <button onclick="send()">发送</button>
-    </div>
+<div class="chat">
+  <div class="top">🌍 国内多人公共聊天室（所有人可见）</div>
+  <div class="msgs" id="msgs"></div>
+  <div class="input-box">
+    <input type="text" id="name" placeholder="昵称" value="用户">
+    <input type="text" id="text" placeholder="输入消息...">
+    <button onclick="send()">发送</button>
+  </div>
 </div>
 
+<script src="https://cdn.goeasy.io/goeasy-2.6.0.min.js"></script>
 <script>
-    // 用在线免费实时通道，实现多人聊天
-    const channel = new BroadcastChannel("public_chat");
-    const msgArea = document.getElementById("msgArea");
-    const nameInput = document.getElementById("name");
-    const textInput = document.getElementById("text");
+  // 已替换成你的 APPKEY
+  const goEasy = GoEasy.getInstance({
+    host: 'hangzhou.goeasy.io',
+    appkey: 'BC-eb5fdf3b144f4d1ba06a850372ae40db',
+  });
 
-    // 发送消息
-    function send() {
-        const name = nameInput.value.trim() || "匿名";
-        const text = textInput.value.trim();
-        if (!text) return;
+  goEasy.connect({
+    onSuccess: () => console.log('连接成功'),
+    onFailed: (err) => console.log('连接失败', err)
+  });
 
-        const data = { name, text, mine: true };
-        addMsg(data);
-        channel.postMessage(data);
-        textInput.value = "";
+  goEasy.subscribe({
+    channel: 'public_chat',
+    onMessage: (msg) => {
+      addMsg(msg.content, false);
     }
+  });
 
-    // 接收消息
-    channel.onmessage = (e) => {
-        const data = e.data;
-        data.mine = false;
-        addMsg(data);
-    };
+  const msgs = document.getElementById('msgs');
+  const nameInput = document.getElementById('name');
+  const textInput = document.getElementById('text');
 
-    // 显示消息
-    function addMsg({ name, text, mine }) {
-        const div = document.createElement("div");
-        div.className = "msg " + (mine ? "my" : "other");
-        div.innerText = (mine ? "" : name + "：") + text;
-        msgArea.appendChild(div);
-        msgArea.scrollTop = msgArea.scrollHeight;
-    }
+  function addMsg(text, isMe) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + (isMe ? 'me' : 'other');
+    div.innerText = text;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
 
-    // 回车发送
-    textInput.addEventListener("keypress", e => {
-        if (e.key === "Enter") send();
+  function send() {
+    const name = nameInput.value || '匿名';
+    const text = textInput.value.trim();
+    if (!text) return;
+    const content = `${name}：${text}`;
+    
+    goEasy.publish({
+      channel: 'public_chat',
+      message: content
     });
-</script>
+    
+    addMsg(content, true);
+    textInput.value = '';
+  }
 
+  textInput.addEventListener('keypress', e => {
+    if (e.key === 'Enter') send();
+  });
+</script>
 </body>
 </html>
