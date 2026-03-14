@@ -30,8 +30,8 @@
 </div>
 
 <script>
-    // 原生 WebSocket，不需要任何外部 SDK
-    const ws = new WebSocket('wss://echo.websocket.org');
+    // 换用支持广播的公共 WebSocket 服务
+    const ws = new WebSocket('wss://socketsbay.com/wss/v2/1/demo/');
     const msgs = document.getElementById('msgs');
     const nameInput = document.getElementById('name');
     const textInput = document.getElementById('text');
@@ -39,12 +39,15 @@
 
     // 连接成功
     ws.onopen = function() {
-        addMsg("系统：连接成功，开始聊天吧！", false);
+        addMsg("系统：连接成功，开始和大家聊天吧！", false);
     };
 
-    // 收到消息（广播给所有人）
+    // 收到广播消息（所有人都能看到）
     ws.onmessage = function(event) {
-        addMsg(event.data, false);
+        // 过滤掉系统服务器标识消息
+        if (!event.data.startsWith("Request served by")) {
+            addMsg(event.data, false);
+        }
     };
 
     // 连接断开
@@ -61,13 +64,13 @@
         msgs.scrollTop = msgs.scrollHeight;
     }
 
-    // 发送消息（核心功能）
+    // 发送消息（会被广播给所有在线用户）
     function send() {
         const name = nameInput.value || '匿名';
         const text = textInput.value.trim();
         if (!text || ws.readyState !== WebSocket.OPEN) return;
         const content = `${name}：${text}`;
-        ws.send(content); // 发送到服务器，服务器会广播给所有人
+        ws.send(content);
         addMsg(content, true);
         textInput.value = '';
     }
