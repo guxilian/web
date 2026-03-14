@@ -1,110 +1,84 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>国内多人聊天室</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
-    body{background:#f2f5f9;padding:20px}
-    .chat{max-width:700px;margin:0 auto;background:#fff;border-radius:15px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.1)}
-    .top{background:#007bff;color:white;padding:16px;text-align:center;font-size:18px}
-    .msgs{height:500px;padding:20px;overflow-y:auto;background:#fafbfc}
-    .msg{margin-bottom:10px;max-width:75%;padding:10px 14px;border-radius:12px}
-    .me{background:#007bff;color:white;margin-left:auto}
-    .other{background:#e9e9eb;color:#333;margin-right:auto}
-    .input-box{display:flex;padding:15px;border-top:1px solid #eee}
-    #name{width:100px;padding:12px;border:1px solid #ddd;border-radius:24px;margin-right:8px;outline:none}
-    #text{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:24px;outline:none}
-    button{padding:12px 20px;background:#007bff;color:white;border:none;border-radius:24px;margin-left:8px;cursor:pointer}
-  </style>
+    <meta charset="UTF-8">
+    <title>多人在线聊天室</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:Arial}
+        body{background:#f2f5f9;padding:20px}
+        .chat{max-width:700px;margin:0 auto;background:#fff;border-radius:15px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.1)}
+        .top{background:#007bff;color:white;padding:16px;text-align:center;font-size:18px}
+        .msgs{height:500px;padding:20px;overflow-y:auto;background:#fafbfc}
+        .msg{margin-bottom:10px;max-width:75%;padding:10px 14px;border-radius:12px}
+        .me{background:#007bff;color:white;margin-left:auto}
+        .other{background:#e9e9eb;color:#333;margin-right:auto}
+        .input-box{display:flex;padding:15px;border-top:1px solid #eee}
+        #name{width:100px;padding:12px;border:1px solid #ddd;border-radius:24px;margin-right:8px;outline:none}
+        #text{flex:1;padding:12px 16px;border:1px solid #ddd;border-radius:24px;outline:none}
+        button{padding:12px 20px;background:#007bff;color:white;border:none;border-radius:24px;margin-left:8px;cursor:pointer}
+    </style>
 </head>
 <body>
 <div class="chat">
-  <div class="top">🌍 国内多人公共聊天室（所有人可见）</div>
-  <div class="msgs" id="msgs"></div>
-  <div class="input-box">
-    <input type="text" id="name" placeholder="昵称" value="用户">
-    <input type="text" id="text" placeholder="输入消息...">
-    <button id="sendBtn">发送</button>
-  </div>
+    <div class="top">🌍 公共多人聊天室（所有人可见）</div>
+    <div class="msgs" id="msgs"></div>
+    <div class="input-box">
+        <input type="text" id="name" placeholder="昵称" value="用户">
+        <input type="text" id="text" placeholder="输入消息...">
+        <button id="sendBtn">发送</button>
+    </div>
 </div>
 
-<!-- 加载 GoEasy SDK -->
-<script src="https://cdn.goeasy.io/goeasy-2.6.0.min.js"></script>
-
 <script>
-  // 等待 SDK 和 DOM 完全就绪
-  document.addEventListener('DOMContentLoaded', function() {
-    // 先检查 GoEasy 是否加载成功
-    if (typeof GoEasy === 'undefined') {
-      alert('GoEasy SDK 加载失败，请检查网络后刷新！');
-      return;
-    }
-
-    console.log("✅ 初始化 GoEasy...");
-    const goEasy = GoEasy.getInstance({
-      host: 'hangzhou.goeasy.io',
-      appkey: 'BC-eb5fdf3b144f4d1ba06a850372ae40db',
-    });
-
-    // 连接 GoEasy
-    goEasy.connect({
-      onSuccess: () => {
-        console.log("✅ GoEasy 连接成功！");
-        // 订阅公共频道
-        goEasy.subscribe({
-          channel: 'public_chat',
-          onMessage: (msg) => {
-            console.log("📩 收到消息：", msg.content);
-            addMsg(msg.content, false);
-          },
-          onSuccess: () => console.log("✅ 订阅 public_chat 成功"),
-          onFailed: (err) => console.error("❌ 订阅失败：", err)
-        });
-      },
-      onFailed: (err) => console.error("❌ GoEasy 连接失败：", err)
-    });
-
-    // 获取 DOM 元素（现在一定存在）
+    // 使用公共 WebSocket 服务，国内可访问
+    const ws = new WebSocket('wss://echo.websocket.org');
     const msgs = document.getElementById('msgs');
     const nameInput = document.getElementById('name');
     const textInput = document.getElementById('text');
     const sendBtn = document.getElementById('sendBtn');
 
+    // 连接成功提示
+    ws.onopen = () => {
+        console.log("✅ WebSocket 连接成功！");
+        addMsg("系统：你已进入聊天室", false);
+    };
+
+    // 接收消息
+    ws.onmessage = (event) => {
+        console.log("📩 收到消息：", event.data);
+        addMsg(event.data, false);
+    };
+
+    // 连接关闭提示
+    ws.onclose = () => {
+        addMsg("系统：连接已断开，刷新页面重连", false);
+    };
+
     // 添加消息到界面
     function addMsg(text, isMe) {
-      const div = document.createElement('div');
-      div.className = 'msg ' + (isMe ? 'me' : 'other');
-      div.innerText = text;
-      msgs.appendChild(div);
-      msgs.scrollTop = msgs.scrollHeight;
+        const div = document.createElement('div');
+        div.className = 'msg ' + (isMe ? 'me' : 'other');
+        div.innerText = text;
+        msgs.appendChild(div);
+        msgs.scrollTop = msgs.scrollHeight;
     }
 
-    // 发送消息逻辑
+    // 发送消息
     function send() {
-      const name = nameInput.value || '匿名';
-      const text = textInput.value.trim();
-      if (!text) return;
-      const content = `${name}：${text}`;
-      console.log("📤 发送消息：", content);
-      
-      goEasy.publish({
-        channel: 'public_chat',
-        message: content,
-        onSuccess: () => console.log("✅ 消息发送成功"),
-        onFailed: (err) => console.error("❌ 消息发送失败：", err)
-      });
-      
-      addMsg(content, true);
-      textInput.value = '';
+        const name = nameInput.value || '匿名';
+        const text = textInput.value.trim();
+        if (!text || ws.readyState !== WebSocket.OPEN) return;
+        const content = `${name}：${text}`;
+        ws.send(content);
+        addMsg(content, true);
+        textInput.value = '';
     }
 
-    // 绑定事件（不再用 onclick 属性）
+    // 绑定事件
     sendBtn.addEventListener('click', send);
     textInput.addEventListener('keypress', e => {
-      if (e.key === 'Enter') send();
+        if (e.key === 'Enter') send();
     });
-  });
 </script>
 </body>
 </html>
